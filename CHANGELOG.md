@@ -2,6 +2,55 @@
 
 All published Tando firmware versions are recorded here in newest-first order.
 
+## v0.10.0-rc.11
+
+Moved the firmware into a dedicated Arduino Sketch folder.
+
+### Changed
+- Moved all 17 firmware source files into `firmware/tando_final_demo_15min/`, keeping the entry-point filename and adjacent module includes unchanged.
+- Updated build, packaging, release version extraction, and standalone source asset paths for the nested Sketch. Build/package commands still take the repository root, where `VERSION` and documentation remain.
+- Preserved the downloadable ZIP layout: one `tando_final_demo_15min/` folder with every source module and root release metadata.
+- Documented direct Arduino IDE opening from the repository and the current published modular download.
+
+### Firmware behavior and persistence
+- Source contents are unchanged from rc.10 apart from the release version string. Runtime behavior, NVS state version 5, pin assignments, and RFID UIDs are unchanged.
+- PET re-arm (#22), RFID tag replacement (#23), interrupted NVS saves (#24), and the long-uptime reaction deadline (#25) remain open for separate fixes before Stable promotion.
+
+## v0.10.0-rc.10
+
+Aligned release automation with the RC period before the known firmware bugs are fixed.
+
+### Changed
+- A valid RC on `main` passes version validation and explicitly skips publishing, including the new-tag check. RC packages continue to be published from `develop`; stable `X.Y.Z` versions on `main` still create Stable releases.
+- Kept firmware/`VERSION` matching and immutable-tag protection for publishing paths.
+- Documented the published modular Sketch download, installation path, four known issues, and the temporary RC state on `main`.
+
+### Firmware behavior and persistence
+- The only firmware edit is the version string. Runtime behavior and NVS state version 5 are unchanged from rc.9.
+- PET re-arm (#22), RFID tag replacement (#23), interrupted NVS saves (#24), and the long-uptime reaction deadline (#25) remain open for separate fixes before Stable promotion.
+
+## v0.10.0-rc.9
+
+Modularized the firmware while preserving the v0.10.0-rc.8 runtime contract.
+
+### Changed
+- Kept `tando_final_demo_15min.ino` as the sketch entry point and moved the implementation into Demo, Reactions, CareRequests, Eyes, Touch, Rfid, and SerialCommands source/header pairs, with shared configuration and types in dedicated headers.
+- Kept the two Care Request families together so their shared wall-clock schedule, quota, retry and visual-exclusion rules remain coordinated.
+- Added reusable sketch staging/build tools and a complete source Sketch ZIP to the release assets. The entry-point `.ino` alone is no longer a complete build input.
+- Documented the module layout and Arduino CLI / Arduino IDE build and upload steps.
+
+### Firmware behavior and persistence
+- No intended change to PET, RFID, reaction priorities, Sleep, Care Requests, demo timing, Progress, LED feedback, pin assignments, or tag UIDs.
+- Preserved the Stage-local Sleep credit window starting at 06:00 and Sleep Request threshold at 09:00 from rc.8.
+- NVS state version remains 5; this refactor does not introduce another migration or reset.
+- Existing behavioral issues found during inspection are reported separately; this structural change does not silently fix them.
+
+### Validation
+- ESP32-S3 compilation passed with Arduino CLI 1.5.1 and Arduino-ESP32 3.3.12.
+- Extraction checks preserved 127 existing function bodies, all 182 global definitions/initializers, four shared types, and the expanded startup call order.
+- Six staging/build/package tests passed. Physical hardware validation remains required.
+- Physical display, Touch, RFID, LED and NVS validation remains required.
+
 ## v0.10.0-rc.8
 
 Corrected the Stage-local SLEEP credit and request contract.

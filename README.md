@@ -6,17 +6,23 @@
 
 ## وضعیت فعلی
 
-نسخه Pre-release فعلی Firmware: **v0.10.0-rc.8**
+نسخهٔ Pre-release کد این شاخه: **v0.10.0-rc.11**
+
+نسخهٔ ماژولار منتشرشده برای نصب: [v0.10.0-rc.10](https://github.com/vahid162/tendo/releases/tag/v0.10.0-rc.10) — [دانلود ZIP کامل Sketch](https://github.com/vahid162/tendo/releases/download/v0.10.0-rc.10/tando-0.10.0-rc.10-sketch.zip).
+
+شمارهٔ نسخهٔ کد شاخه به‌تنهایی به معنی انتشار Release نیست. برای دریافت RCهای بعدی، وضعیت و بستهٔ هم‌شماره را در [Releases](https://github.com/vahid162/tendo/releases) بررسی کنید. روش نصب بستهٔ ماژولار در [ساخت و آپلود](#ساخت-و-آپلود) آمده است.
 
 آخرین نسخه Stable: **v0.7.1**
+
+این نسخه تا رفع چهار [ایراد شناخته‌شده](#ایرادهای-شناختهشده) و تکمیل تست‌ها، RC می‌ماند؛ حضور کد روی `main` به‌تنهایی به معنی Stable بودن آن نیست.
 
 فایل اصلی Firmware:
 
 ```text
-tando_final_demo_15min.ino
+firmware/tando_final_demo_15min/tando_final_demo_15min.ino
 ```
 
-از این فایل به‌عنوان مبنای تغییرهای بعدی استفاده می‌کنیم.
+این فایل نقطهٔ ورود Firmware است؛ `setup()` و `loop()` اجرای ماژول‌های همان پوشه را هماهنگ می‌کنند.
 
 ویژگی‌های فعال:
 
@@ -45,6 +51,37 @@ tando_final_demo_15min.ino
 - Hunger و Pet Request عضو Pool عمومی Random نیستند و با Scheduler مستقل Stage-aware اجرا می‌شوند
 - ذخیره Stage، Progress و زمان Demo در NVS
 - PWM برای LED واکنش روی GPIO21
+
+## ایرادهای شناخته‌شده
+
+- [#22: قفل ماندن PET بعد از رهاسازی معتبر و لمس دوباره در فاصلهٔ جلوگیری از تکرار](https://github.com/vahid162/tendo/issues/22).
+- [#23: تشخیص‌ندادن تعویض سریع تگ SLEEP با FOOD و ادامهٔ حالت خواب](https://github.com/vahid162/tendo/issues/23).
+- [#24: احتمال ثبت Credit تکراری در صورت قطع ذخیره‌سازی NVS](https://github.com/vahid162/tendo/issues/24).
+- [#25: مسدود شدن شروع واکنش‌های کاربر پس از حدود ۲۴٫۸۵ روز کارکرد](https://github.com/vahid162/tendo/issues/25).
+
+این ایرادها در این RC اصلاح نشده‌اند؛ هر اصلاح جداگانه روی `develop` و با RC جدید منتشر می‌شود.
+
+## ساختار ماژولار
+
+از `v0.10.0-rc.9`، کد بر اساس مسئولیت به فایل‌های زیر تقسیم شده است:
+
+از `v0.10.0-rc.11`، همهٔ ۱۷ فایل فریم‌ور در پوشهٔ `firmware/tando_final_demo_15min/` قرار دارند؛ نام‌های جدول زیر نسبت به همین پوشه هستند. فایل‌های `README.md`، `CHANGELOG.md`، `VERSION` و `AGENTS.md` در روت مخزن می‌مانند و `scripts/`، `tests/` و `docs/` نیز پوشه‌های مستقل‌اند.
+
+| فایل | مسئولیت |
+|---|---|
+| `tando_final_demo_15min.ino` | نقطهٔ ورود، ترتیب راه‌اندازی و اجرای حلقه، شماره نسخه |
+| `TandoConfig.h` و `TandoTypes.h` | تنظیمات ثابت و نوع‌های مشترک |
+| `Demo.h` / `Demo.cpp` | Active Demo Time، Stage، Progress و ذخیره‌سازی NVS |
+| `Reactions.h` / `Reactions.cpp` | واکنش‌ها، صف رویدادها، اولویت‌ها، Sleep و LED |
+| `CareRequests.h` / `CareRequests.cpp` | زمان‌بندی مشترک Hunger و PET Request |
+| `Eyes.h` / `Eyes.cpp` | نمایشگرها، رسم چشم، حرکت، Blink و شخصیت خودکار |
+| `Touch.h` / `Touch.cpp` | تشخیص PET، کالیبراسیون و Diagnosticهای MPR121 |
+| `Rfid.h` / `Rfid.cpp` | خواندن UID و تشخیص حضور یا حذف Tag |
+| `SerialCommands.h` / `SerialCommands.cpp` | فرمان‌های تست و گزارش وضعیت |
+
+همهٔ فایل‌های `.ino`، `.h` و `.cpp` باید در یک پوشهٔ Sketch به نام `tando_final_demo_15min` باشند. Arduino آن‌ها را با هم کامپایل و به یک Firmware تبدیل می‌کند.
+
+این تفکیک رفتار نسخهٔ `v0.10.0-rc.8` را حفظ می‌کند؛ پنجرهٔ Credit خواب از 06:00، Sleep Request از 09:00، زمان‌بندی‌ها، پین‌ها، UIDها و قالب NVS نسخهٔ 5 تغییر نکرده‌اند. انتقال فایل‌ها به پوشهٔ جدید در `rc.11` نیز فقط ساختاری است و جز شمارهٔ نسخه، محتوای کد را تغییر نمی‌دهد. یافته‌های بررسی باگ جداگانه گزارش می‌شوند و بخشی از این جابه‌جایی ساختاری نیستند.
 
 ## منطق Demo
 
@@ -380,10 +417,41 @@ PWM = GPIO21
 - Adafruit GFX Library
 - Adafruit GC9A01A
 - Adafruit MPR121
+- Adafruit BusIO
 - MFRC522
 - Preferences
 - SPI
 - Wire
+
+## ساخت و آپلود
+
+برای ساخت با Arduino CLI، ابتدا هستهٔ ESP32 و کتابخانه‌های بالا را نصب و `arduino-cli` را در `PATH` فعال کنید. از ریشهٔ مخزن اجرا کنید:
+
+```bash
+bash scripts/build.sh
+```
+
+با دادن مسیر کامل `scripts/build.sh` می‌توان همین اسکریپت را از پوشه‌های دیگر هم اجرا کرد. اسکریپت همهٔ فایل‌های منبع را از `firmware/tando_final_demo_15min/` در پوشهٔ Sketch با نام درست آماده می‌کند و سپس کامپایل را انجام می‌دهد.
+
+هدف پیش‌فرض `esp32:esp32:esp32s3` و تعداد کارهای موازی 4 است. خروجی‌های `.bin` و `.elf` در `/tmp/tando-build/artifacts` قرار می‌گیرند. برای تغییر محل خروجی، هدف برد یا تعداد کارهای موازی از متغیرهای `TANDO_BUILD_ROOT`، `TANDO_FQBN` و `TANDO_BUILD_JOBS` استفاده کنید. این هدف پیش‌فرض برای بررسی کامپایل است؛ تنظیمات Upload باید با مدل واقعی برد، Flash و PSRAM آن هماهنگ باشند.
+
+برای آپلود با Arduino IDE:
+
+1. فایل کامل `tando-<version>-sketch.zip` را از Release نسخهٔ موردنظر دریافت و استخراج کنید؛ [بستهٔ منتشرشدهٔ rc.10](https://github.com/vahid162/tendo/releases/download/v0.10.0-rc.10/tando-0.10.0-rc.10-sketch.zip) برای نصب نسخهٔ ماژولار در دسترس است.
+2. پوشهٔ `tando_final_demo_15min` را با تمام فایل‌هایش نگه دارید و فایل `tando_final_demo_15min.ino` داخل آن را باز کنید.
+3. کتابخانه‌ها، مدل واقعی ESP32-S3 و Port را انتخاب کنید؛ سپس Verify و Upload را اجرا کنید.
+
+اگر منبع را از خود مخزن دریافت کرده‌اید، فایل `firmware/tando_final_demo_15min/tando_final_demo_15min.ino` را مستقیماً در Arduino IDE باز کنید و تمام فایل‌های `.h` و `.cpp` کنارش را نگه دارید. ZIP مخصوص Sketch همان پوشهٔ `tando_final_demo_15min/` را در سطح اول دارد و یک پوشهٔ اضافی `firmware/` داخل آن نیست.
+
+برای آماده‌کردن همین بسته از مخزن می‌توانید اجرا کنید:
+
+```bash
+python3 scripts/prepare_sketch.py package . /tmp/tando-sketch.zip
+```
+
+این دستور همچنان روت مخزن را می‌گیرد؛ منابع را از پوشهٔ فریم‌ور و فایل‌های `VERSION` و `README.md` را از روت در بسته قرار می‌دهد.
+
+فایل `.ino` منفردِ پیوست Release برای ساخت نسخهٔ ماژولار کافی نیست؛ فایل‌های `.h` و `.cpp` همراه آن نیز لازم‌اند. کامپایل موفق، جای تست نمایشگر، Touch، RFID، Sleep و NVS روی سخت‌افزار واقعی را نمی‌گیرد.
 
 ## Serial Monitor
 
@@ -463,14 +531,18 @@ Stable      -> main    -> vX.Y.Z
 Pre-release -> develop -> vX.Y.Z-rc.N
 ```
 
-هر تغییر نهایی‌شده روی یکی از شاخه‌های انتشار باید هم‌زمان شماره نسخه جدید، `VERSION`، `CHANGELOG.md` و شماره نسخه داخل Firmware را به‌روزرسانی کند.
+هر تغییر نهایی‌شده برای انتشار باید هم‌زمان شماره نسخه جدید، `VERSION`، `CHANGELOG.md` و شماره نسخه داخل Firmware را به‌روزرسانی کند.
 
-Push روی `main` یک Release پایدار می‌سازد و Push نسخه‌دار روی `develop` یک GitHub Pre-release می‌سازد. Tag و Release منتشرشده هرگز بازنویسی نمی‌شوند.
+Push نسخه‌دار روی `develop` یک GitHub Pre-release با ZIP کامل Sketch می‌سازد. Push نسخهٔ Stable با قالب `X.Y.Z` روی `main` یک Release پایدار می‌سازد. Tag و Release منتشرشده هرگز بازنویسی نمی‌شوند.
+
+تا پایان رفع ایرادهای شناخته‌شده، `main` می‌تواند نسخهٔ RC منتشرشده از `develop` را نیز نگه دارد. برای RC معتبر روی `main`، تطابق نسخهٔ Firmware و `VERSION` بررسی می‌شود و سپس workflow با پیام روشن و نتیجهٔ موفق، بررسی تگ جدید و تمام عملیات انتشار را Skip می‌کند. این انتقال Stable جدیدی نمی‌سازد و RC موجود را هم دوباره منتشر نمی‌کند.
+
+پس از رفع چهار ایراد و تأیید تست‌ها، نسخهٔ `X.Y.Z` با مستندات همگام به `main` منتقل می‌شود تا انتشار Stable انجام شود.
 
 ## روند توسعه
 
 
-از این مخزن به‌عنوان مرجع اصلی Firmware استفاده می‌کنیم. برای توسعه عادی، `develop` مرجع Current Pre-release است و `main` مرجع Stable باقی می‌ماند.
+از این مخزن به‌عنوان مرجع اصلی Firmware استفاده می‌کنیم. برای توسعه عادی، `develop` مرجع Current Pre-release است. `main` مقصد انتشار Stable است و طبق سیاست موقت بالا می‌تواند تا زمان آماده‌شدن Stable، RC را نیز نگه دارد.
 
 در تغییرهای بعدی:
 
