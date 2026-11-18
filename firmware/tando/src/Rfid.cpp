@@ -1,9 +1,10 @@
 #include "Rfid.h"
 #include "TandoConfig.h"
-#include "Demo.h"
-#include "Reactions.h"
+#include "./model/Demo.h"
+#include "./model/Reaction.h"
 #include <SPI.h>
 #include <MFRC522.h>
+#include "controller/DemoController.h"
 
 // Owns the RC522 reader and its card-present/removal latch.
 
@@ -56,8 +57,8 @@ void updateRFID(uint32_t now) {
       if (rfidLatchedIsSleep && reaction == R_SLEEP) {
         // A held SLEEP tag is a continuous interaction. Keep sleep alive
         // and keep the active-demo timer from pausing for inactivity.
-        sleepTagPresent = true;
-        lastInteractionMs = now;
+        sleepReaction.sleepTagPresent = true;
+        demo.clock.lastInteractionMs = now;
       }
       return;
     }
@@ -70,12 +71,12 @@ void updateRFID(uint32_t now) {
     if ((now - rfidNoCardSince) >= RFID_REARM_MS) {
       if (rfidLatchedIsSleep) {
         if (reaction == R_SLEEP) {
-          beginSleepWake(now);
+          sleepReaction.beginSleepWake(now);
         } else {
           // SLEEP was waiting behind a system-priority animation but the tag
           // disappeared before sleep actually started.
-          sleepTagPresent = false;
-          pendingSleepVisual = false;
+          sleepReaction.sleepTagPresent = false;
+          demo.sleepRequestPending = false;
         }
       }
 
@@ -100,13 +101,13 @@ void updateRFID(uint32_t now) {
   rfidLatchedIsSleep = false;
 
   if (uidMatches(FOOD1_UID, FOOD1_UID_SIZE)) {
-    handleFoodEvent(1, now);
+    foodReaction.handleEvent(1, now);
   } else if (uidMatches(FOOD2_UID, FOOD2_UID_SIZE)) {
-    handleFoodEvent(2, now);
+    foodReaction.handleEvent(2, now);
   } else if (uidMatches(SLEEP_UID, SLEEP_UID_SIZE)) {
     Serial.println("SLEEP TAG ACCEPTED");
     rfidLatchedIsSleep = true;
-    handleSleepEvent(now);
+    sleepReaction.handleEvent(now);
   } else {
     Serial.println("UNKNOWN RFID TAG");
     handleUnknownRfidEvent(now);

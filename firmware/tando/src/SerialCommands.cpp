@@ -1,75 +1,75 @@
 #include "SerialCommands.h"
-#include "TandoConfig.h"
-#include "Demo.h"
-#include "Reactions.h"
-#include "CareRequests.h"
-#include "Eyes.h"
+#include "./model/Demo.h"
+#include "./model/Reaction.h"
+#include "./model/Request.h"
+#include "./view/EyesView.h"
 #include "Touch.h"
+#include "./controller/DemoController.h"
 
 // Serial diagnostics and previews call the same subsystem APIs as real inputs.
 
 void printDemoStatus(uint32_t now) {
-  uint32_t elapsed = getActiveElapsedMs(now);
-  uint32_t stageElapsed = getStageActiveElapsedMs(now);
+  uint32_t elapsed = demo.clock.getActiveElapsedMs(now);
+  uint32_t stageElapsed = demo.clock.getStageActiveElapsedMs(now, demo.stage);
 
   Serial.println();
   Serial.println("---------- TANDO STATUS ----------");
   Serial.print("Demo started: ");
-  Serial.println(demoStarted ? "YES" : "NO");
+  Serial.println(demo.clock.started ? "YES" : "NO");
   Serial.print("Clock running: ");
-  Serial.println(demoClockRunning ? "YES" : "NO / PAUSED");
+  Serial.println(demo.clock.running ? "YES" : "NO / PAUSED");
   Serial.print("Active time: ");
   Serial.print(elapsed / 60000UL);
   Serial.print("m ");
   Serial.print((elapsed / 1000UL) % 60UL);
   Serial.println("s");
   Serial.print("Stage: ");
-  Serial.println(currentStage);
+  Serial.println(demo.stage);
   Serial.print("Stage-local active time: ");
   Serial.print(stageElapsed / 60000UL);
   Serial.print("m ");
   Serial.print((stageElapsed / 1000UL) % 60UL);
   Serial.println("s");
   Serial.print("Sleep credit window: ");
-  Serial.println(sleepCreditWindowOpen(now) ? "OPEN" : "CLOSED");
+  Serial.println(demo.sleepCreditWindowOpen(now) ? "OPEN" : "CLOSED");
   Serial.print("Sleep credited this Stage: ");
-  Serial.println(sleepCreditedThisStage() ? "YES" : "NO");
+  Serial.println(demo.sleepCreditedThisStage() ? "YES" : "NO");
   Serial.print("Sleep Request pending: ");
-  Serial.println(sleepRequestPending ? "YES" : "NO");
+  Serial.println(demo.sleepRequestPending ? "YES" : "NO");
   Serial.print("Current-stage care mask: 0x");
-  Serial.println(stageCareMask, HEX);
+  Serial.println(demo.stageCareMask, HEX);
   Serial.print("Progress credits: ");
-  Serial.print(visualCredits);
+  Serial.print(demo.visualCredits);
   Serial.println(" / 9");
   Serial.print("Complete: ");
-  Serial.println(completionFlag ? "YES" : "NO");
+  Serial.println(demo.completed ? "YES" : "NO");
   Serial.print("Autonomous state: ");
-  Serial.println(autonomousStateName(autonomousState));
+  Serial.println(eyesModel.autonomousState.getName(eyesModel.autonomousState.type));
   Serial.print("Hunger requests: stage=");
-  Serial.print(hungerRequestStage);
+  Serial.print(hungerRequest.requestStage);
   Serial.print(" completed=");
-  Serial.print(hungerRequestsShown);
+  Serial.print(hungerRequest.requestsShown);
   Serial.print("/");
   Serial.print(HUNGER_REQUESTS_PER_STAGE);
   Serial.print(" active=");
-  Serial.print(hungerPromptActive ? "YES" : "NO");
+  Serial.print(hungerRequest.promptActive ? "YES" : "NO");
   Serial.print(" foodSatisfied=");
-  Serial.print(hungerNeedSatisfiedThisStage() ? "YES" : "NO");
+  Serial.print(hungerRequest.needSatisfiedThisStage() ? "YES" : "NO");
   Serial.print(" nextSlot=");
-  Serial.print((hungerRequestSlot < HUNGER_REQUESTS_PER_STAGE)
-    ? (hungerRequestSlot + 1)
+  Serial.print((hungerRequest.requestSlot < HUNGER_REQUESTS_PER_STAGE)
+    ? (hungerRequest.requestSlot + 1)
     : HUNGER_REQUESTS_PER_STAGE);
   Serial.print("/10 scheduler=");
-  if (completionFlag ||
-      hungerNeedSatisfiedThisStage() ||
-      hungerRequestSlot >= HUNGER_REQUESTS_PER_STAGE) {
+  if (demo.completed ||
+      hungerRequest.needSatisfiedThisStage() ||
+      hungerRequest.requestSlot >= HUNGER_REQUESTS_PER_STAGE) {
     Serial.println("STOPPED");
   } else {
     Serial.print("RUNNING");
-    if (nextHungerRequestAt != 0) {
+    if (hungerRequest.nextRequestAt != 0) {
       uint32_t careWall = getCurrentCareStageWallMs(now);
-      uint32_t nextIn = (nextHungerRequestAt > careWall)
-        ? (nextHungerRequestAt - careWall)
+      uint32_t nextIn = (hungerRequest.nextRequestAt > careWall)
+        ? (hungerRequest.nextRequestAt - careWall)
         : 0;
       Serial.print(" nextIn=");
       Serial.print(nextIn / 1000UL);
@@ -79,30 +79,30 @@ void printDemoStatus(uint32_t now) {
   }
 
   Serial.print("PET requests: stage=");
-  Serial.print(petRequestStage);
+  Serial.print(petRequest.requestStage);
   Serial.print(" completed=");
-  Serial.print(petRequestsShown);
+  Serial.print(petRequest.requestsShown);
   Serial.print("/");
   Serial.print(PET_REQUESTS_PER_STAGE);
   Serial.print(" active=");
-  Serial.print(petRequestPromptActive ? "YES" : "NO");
+  Serial.print(petRequest.promptActive ? "YES" : "NO");
   Serial.print(" petSatisfied=");
-  Serial.print(petRequestNeedSatisfiedThisStage() ? "YES" : "NO");
+  Serial.print(petRequest.needSatisfiedThisStage() ? "YES" : "NO");
   Serial.print(" nextSlot=");
-  Serial.print((petRequestSlot < PET_REQUESTS_PER_STAGE)
-    ? (petRequestSlot + 1)
+  Serial.print((petRequest.requestSlot < PET_REQUESTS_PER_STAGE)
+    ? (petRequest.requestSlot + 1)
     : PET_REQUESTS_PER_STAGE);
   Serial.print("/10 scheduler=");
-  if (completionFlag ||
-      petRequestNeedSatisfiedThisStage() ||
-      petRequestSlot >= PET_REQUESTS_PER_STAGE) {
+  if (demo.completed ||
+      petRequest.needSatisfiedThisStage() ||
+      petRequest.requestSlot >= PET_REQUESTS_PER_STAGE) {
     Serial.println("STOPPED");
   } else {
     Serial.print("RUNNING");
-    if (nextPetRequestAt != 0) {
+    if (petRequest.nextRequestAt != 0) {
       uint32_t careWall = getCurrentCareStageWallMs(now);
-      uint32_t nextIn = (nextPetRequestAt > careWall)
-        ? (nextPetRequestAt - careWall)
+      uint32_t nextIn = (petRequest.nextRequestAt > careWall)
+        ? (petRequest.nextRequestAt - careWall)
         : 0;
       Serial.print(" nextIn=");
       Serial.print(nextIn / 1000UL);
@@ -148,22 +148,27 @@ void updateSerial(uint32_t now) {
 
     switch (c) {
       case 'p':
-        handlePetEvent(now);
+        petReaction.handleEvent(now);
+        // handlePetEvent(now);
         break;
 
       case '1':
-        handleFoodEvent(1, now);
+        foodReaction.handleEvent(1, now);
+        // handleFoodEvent(1, now);
         break;
 
       case '2':
-        handleFoodEvent(2, now);
+        foodReaction.handleEvent(2, now);
+        // handleFoodEvent(2, now);
         break;
 
       case 's':
-        if (reaction == R_SLEEP && sleepTagPresent) {
-          beginSleepWake(now);
+        if (reaction == R_SLEEP && demo.sleepRequestPending) {
+          // beginSleepWake(now);
+          sleepReaction.beginSleepWake(now);
         } else if (!reactionIsBusy()) {
-          handleSleepEvent(now);
+          // handleSleepEvent(now);
+          sleepReaction.handleEvent(now);
         }
         break;
 
@@ -173,55 +178,55 @@ void updateSerial(uint32_t now) {
 
       case 'l':
         if (!reactionIsBusy()) {
-          cancelAutonomous();
-          startAutonomous(AUTO_LOOK, now);
+          eyesModel.cancelAutonomous();
+          eyesModel.startAutonomous(AUTO_LOOK, now);
         }
         break;
 
       case 'w':
         if (!reactionIsBusy()) {
-          cancelAutonomous();
-          startAutonomous(AUTO_WINK, now);
+          eyesModel.cancelAutonomous();
+          eyesModel.startAutonomous(AUTO_WINK, now);
         }
         break;
 
       case 'e':
         if (!reactionIsBusy()) {
-          cancelAutonomous();
-          startAutonomous(AUTO_SMILE, now);
+          eyesModel.cancelAutonomous();
+          eyesModel.startAutonomous(AUTO_SMILE, now);
         }
         break;
 
       case 'g':
         if (!reactionIsBusy()) {
-          cancelAutonomous();
-          startAutonomous(AUTO_PLAY, now);
+          eyesModel.cancelAutonomous();
+          eyesModel.startAutonomous(AUTO_PLAY, now);
         }
         break;
 
       case 'h':
-        if (!hungerOverlayBlockedByPriority() && !petRequestPromptActive) {
-          clearHungerPromptRuntime();
-          hungerRetryPending = false;
-          startHungerPrompt(now, false);
+        if (!hungerRequest.blockedByPriority() && !petRequest.promptActive) {
+          hungerRequest.clearPromptRuntime();
+          hungerRequest.retryPending = false;
+          hungerRequest.startPrompt(now, false);
         } else {
           Serial.println("HUNGER PREVIEW BLOCKED - CARE/SLEEP/SYSTEM VISUAL ACTIVE");
         }
         break;
 
       case 'r':
-        if (!petRequestBlockedByPriority() && !hungerPromptActive) {
-          clearPetRequestPromptRuntime();
-          petRequestRetryPending = false;
-          startPetRequestPrompt(now, false);
+        if (!petRequest.blockedByPriority() && !hungerRequest.promptActive) {
+          petRequest.clearPromptRuntime();
+          petRequest.retryPending = false;
+          petRequest.startPrompt(now, false);
         } else {
           Serial.println("PET REQUEST PREVIEW BLOCKED - CARE/REACTION VISUAL ACTIVE");
         }
         break;
 
       case 'b':
-        if (reaction == R_NONE && !sleepRequestPending) {
-          startBlink(now);
+        if (reaction == R_NONE && !demo.sleepRequestPending) {
+          eyesModel.startBlink(now);
         } else {
           Serial.println("BLINK PREVIEW BLOCKED - REACTION/SLEEP REQUEST VISUAL ACTIVE");
         }
@@ -248,26 +253,26 @@ void updateSerial(uint32_t now) {
         break;
 
       case 'D':
-        resetDemoState(now);
-        cancelAutonomous();
-        clearHungerPromptRuntime();
-        clearPetRequestPromptRuntime();
-        chooseIdleLook(now);
-        scheduleNextAutonomous(now);
-        syncHungerRequestStage(now);
-        syncPetRequestStage(now);
-        triggerRingPulse(now);
+        demo.reset(now);
+        eyesModel.cancelAutonomous();
+        hungerRequest.clearPromptRuntime();
+        petRequest.clearPromptRuntime();
+        eyesModel.chooseIdleLook(now);
+        eyesModel.scheduleNextAutonomous(now);
+        hungerRequest.syncRequestStage(now);
+        petRequest.syncRequestStage(now);
+        eyesModel.triggerRingPulse(now);
         break;
 
 #if TANDO_WOKWI_MODE
       case 'f':
-        toggleSimulatorFrameInterval();
+        eyesView.toggleSimulatorFrameInterval();
         break;
       case 'o':
-        toggleSimulatorTransferMode();
+        eyesView.toggleSimulatorTransferMode();
         break;
       case 'v':
-        printSimProbe();
+        eyesView.printSimProbe();
         break;
 #endif
 

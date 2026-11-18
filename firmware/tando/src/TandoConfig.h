@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TANDO_CONFIG_H
+#define TANDO_CONFIG_H
 
 #include <Arduino.h>
 
@@ -134,3 +135,5 @@ const uint32_t FRAME_MS = 34;
 #endif
 const uint32_t TOUCH_POLL_MS = 20;
 const uint32_t RFID_POLL_MS = 80;
+
+#endif

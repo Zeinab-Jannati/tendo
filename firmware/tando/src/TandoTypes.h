@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TANDO_TYPES_H
+#define TANDO_TYPES_H
 
 #include <Arduino.h>
 
@@ -16,7 +17,7 @@ enum BlinkState : uint8_t {
   BLINK_OPENING
 };
 
-enum Reaction : uint8_t {
+enum ReactionType : uint8_t {
   R_NONE,
   R_PET,
   R_FOOD,
@@ -24,13 +25,25 @@ enum Reaction : uint8_t {
   R_CONFUSED,
   R_UNLOCK2,
   R_UNLOCK3,
-  R_COMPLETE
+  R_COMPLETE,
+  R_LED,
+  R_COUNT
 };
 
-enum AutonomousState : uint8_t {
+enum AutonomousStateType : uint8_t {
   AUTO_NONE,
   AUTO_LOOK,
   AUTO_WINK,
   AUTO_SMILE,
   AUTO_PLAY
 };
+
+enum class Stage : uint8_t {
+  NONE = 0,
+  ONE,
+  TWO,
+  THREE
+};
+
+
+#endif 

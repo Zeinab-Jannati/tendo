@@ -1,8 +1,9 @@
 #include "Touch.h"
 #include "TandoConfig.h"
-#include "Reactions.h"
+#include "./model/Reaction.h"
 #include <Wire.h>
 #include <Adafruit_MPR121.h>
+#include "controller/DemoController.h"
 
 // Owns MPR121 sensing, manual recalibration, and the latched two-pad PET detector.
 
@@ -135,7 +136,7 @@ void updateTouch(uint32_t now) {
   uint8_t touchedCount = countPetBits(rawTouched);
 
   // PET is completely disabled during persistent sleep.
-  if (reaction == R_SLEEP || pendingSleepVisual) {
+  if (reaction == R_SLEEP || sleepReaction.pending) {
     petGestureLocked = false;
     petTwoPadCandidate = false;
     petTwoPadSince = 0;
@@ -174,7 +175,8 @@ void updateTouch(uint32_t now) {
     if (stableMs >= PET_TWO_PAD_CONFIRM_MS &&
         (!hasPetTrigger || (now - lastPetTriggerAt) >= PET_EVENT_REFRACTORY_MS)) {
       printPetMask(rawTouched, stableMs);
-      handlePetEvent(now);
+      petReaction.handleEvent(now);
+      // handlePetEvent(now);
 
       petGestureLocked = true;
       petTwoPadCandidate = false;
